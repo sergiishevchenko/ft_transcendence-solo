@@ -56,23 +56,26 @@ This project is a comprehensive web application that allows users to play Pong g
    # Edit .env with your configuration
    ```
 
-3. **Generate SSL certificates (for HTTPS)**
+3. **Start the application (one command)**
    ```bash
-   mkdir -p nginx/ssl
-   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-     -keyout nginx/ssl/key.pem \
-     -out nginx/ssl/cert.pem \
-     -subj "/C=CH/ST=Lausanne/L=Lausanne/O=42/CN=localhost"
+   make
    ```
+   This will automatically generate SSL certificates and start all services.
 
-4. **Start the application**
-   ```bash
-   docker-compose up --build
-   ```
-
-5. **Access the application**
+4. **Access the application**
    - Frontend: https://localhost (or http://localhost:5173 in dev mode)
    - Backend API: https://localhost/api (or http://localhost:3000 in dev mode)
+
+### Other Makefile commands
+
+- `make up` - Start all services
+- `make down` - Stop all services
+- `make build` - Build all containers
+- `make rebuild` - Rebuild and restart all services
+- `make clean` - Stop services and remove volumes
+- `make ssl` - Generate SSL certificates
+- `make logs` - Show logs from all services
+- `make help` - Show all available commands
 
 ## Project Structure
 
