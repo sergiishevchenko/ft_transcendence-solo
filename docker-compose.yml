@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: transcendence-frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - backend
+    networks:
+      - transcendence-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: transcendence-backend
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./database:/app/database
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_PATH=/app/database/transcendence.db
+    env_file:
+      - .env
+    networks:
+      - transcendence-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: transcendence-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - transcendence-network
+
+networks:
+  transcendence-network:
+    driver: bridge
