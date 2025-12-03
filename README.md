@@ -15,29 +15,44 @@ This project is a comprehensive web application that allows users to play Pong g
 - ✅ Player registration with aliases
 - ✅ HTTPS/WSS security
 
-### Implemented Modules
+### Modules
+
+**Web Modules:**
 - ✅ Backend Framework (Fastify + Node.js) - REST API with TypeScript
 - ✅ Frontend Toolkit (Tailwind CSS) - Modern UI components
 - ✅ Database (SQLite) - User, Game, and Tournament data storage
 - ✅ API Integration - Frontend-Backend communication
 
-### Planned Modules
-- User Management & OAuth 2.0
-- Remote Players & Multiplayer
-- Live Chat
-- AI Opponent
-- Stats Dashboards
-- 2FA + JWT Security
-- WAF/ModSecurity + HashiCorp Vault
-- GDPR Compliance
-- ELK Stack Logging
-- Monitoring (Prometheus/Grafana)
-- Microservices Architecture
-- 3D Graphics (Babylon.js)
-- Server-Side Pong + API
-- CLI for Pong
-- Blockchain Integration (Avalanche)
-- And more...
+**User Management:**
+- 🔄 Standard User Management (registration, login, profiles)
+- 🔄 Remote Authentication (OAuth 2.0)
+
+**Gameplay:**
+- 🔄 Remote Players (WebSocket multiplayer)
+- 🔄 Multiplayer (more than 2 players)
+- 🔄 Live Chat
+
+**AI & Stats:**
+- 🔄 AI Opponent
+- 🔄 User and Game Stats Dashboards
+
+**Security:**
+- 🔄 2FA + JWT
+- 🔄 WAF/ModSecurity + HashiCorp Vault
+- 🔄 GDPR Compliance
+
+**DevOps:**
+- 🔄 ELK Stack Logging
+- 🔄 Monitoring (Prometheus/Grafana)
+- 🔄 Microservices Architecture
+
+**Graphics & Advanced:**
+- 🔄 3D Graphics (Babylon.js)
+- 🔄 Server-Side Pong + API
+- 🔄 CLI for Pong
+- 🔄 Blockchain Integration (Avalanche)
+- 🔄 Game Customization Options
+- 🔄 Another Game + Matchmaking
 
 ## Prerequisites
 
