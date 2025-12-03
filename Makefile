@@ -1,4 +1,4 @@
-.PHONY: all up down build rebuild clean ssl logs help
+.PHONY: all up down build rebuild clean ssl logs format help
 
 GREEN  := \033[0;32m
 YELLOW := \033[0;33m
@@ -102,6 +102,24 @@ logs:
 	@echo ""
 	@docker compose logs -f
 
+format:
+	@echo "$(BLUE)→$(NC) Formatting code..."
+	@if [ -d "frontend/node_modules" ]; then \
+		echo "$(BLUE)→$(NC) Formatting frontend..."; \
+		cd frontend && npm run lint -- --fix 2>/dev/null || echo "$(YELLOW)⚠$(NC)  ESLint not available, skipping frontend"; \
+	else \
+		echo "$(YELLOW)→$(NC) Formatting frontend in container..."; \
+		docker compose exec -T frontend npm run lint -- --fix 2>/dev/null || echo "$(YELLOW)⚠$(NC)  Frontend container not running"; \
+	fi
+	@if [ -d "backend/node_modules" ]; then \
+		echo "$(BLUE)→$(NC) Formatting backend..."; \
+		cd backend && npx prettier --write "src/**/*.{ts,js}" 2>/dev/null || echo "$(YELLOW)⚠$(NC)  Prettier not available, skipping backend"; \
+	else \
+		echo "$(YELLOW)→$(NC) Formatting backend in container..."; \
+		docker compose exec -T backend npx prettier --write "src/**/*.{ts,js}" 2>/dev/null || echo "$(YELLOW)⚠$(NC)  Backend container not running"; \
+	fi
+	@echo "$(GREEN)✓$(NC) Formatting completed"
+
 help:
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(CYAN)║           $(MAGENTA)Transcendence Project - Makefile Commands$(CYAN)          ║$(NC)"
@@ -118,6 +136,7 @@ help:
 	@echo "$(YELLOW)  make clean$(NC)   - Stop services and remove volumes"
 	@echo "$(YELLOW)  make ssl$(NC)      - Generate SSL certificates"
 	@echo "$(YELLOW)  make logs$(NC)     - Show logs from all services"
+	@echo "$(YELLOW)  make format$(NC)   - Format code using ESLint/Prettier"
 	@echo ""
 	@echo "$(CYAN)  make help$(NC)     - Show this help message"
 	@echo ""
