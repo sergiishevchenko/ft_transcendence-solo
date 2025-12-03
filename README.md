@@ -15,10 +15,13 @@ This project is a comprehensive web application that allows users to play Pong g
 - ✅ Player registration with aliases
 - ✅ HTTPS/WSS security
 
-### Modules (All implemented)
-- Backend Framework (Fastify + Node.js)
-- Frontend Toolkit (Tailwind CSS)
-- Database (SQLite)
+### Implemented Modules
+- ✅ Backend Framework (Fastify + Node.js) - REST API with TypeScript
+- ✅ Frontend Toolkit (Tailwind CSS) - Modern UI components
+- ✅ Database (SQLite) - User, Game, and Tournament data storage
+- ✅ API Integration - Frontend-Backend communication
+
+### Planned Modules
 - User Management & OAuth 2.0
 - Remote Players & Multiplayer
 - Live Chat
@@ -75,18 +78,39 @@ This project is a comprehensive web application that allows users to play Pong g
 - `make clean` - Stop services and remove volumes
 - `make ssl` - Generate SSL certificates
 - `make logs` - Show logs from all services
+- `make format` - Format code using ESLint/Prettier
 - `make help` - Show all available commands
 
 ## Project Structure
 
 ```
 ft_transcendence-solo/
-├── frontend/          # TypeScript + Tailwind CSS
-├── backend/           # Fastify + Node.js + TypeScript
-├── database/          # SQLite database files
-├── nginx/             # Nginx configuration
-├── docker-compose.yml # Docker orchestration
-└── .env              # Environment variables (not in git)
+├── frontend/              # TypeScript + Tailwind CSS + Vite
+│   ├── src/
+│   │   ├── components/   # UI components
+│   │   ├── pages/        # Page components
+│   │   ├── services/     # API service
+│   │   ├── game/         # Game logic
+│   │   └── router.ts     # SPA routing
+│   └── package.json
+├── backend/              # Fastify + Node.js + TypeScript
+│   ├── src/
+│   │   ├── routes/       # API routes
+│   │   ├── models/       # Database models
+│   │   ├── services/     # Business logic
+│   │   ├── middleware/   # Request middleware
+│   │   └── index.ts      # Server entry point
+│   └── package.json
+├── database/              # SQLite database files
+│   ├── schema.sql        # Database schema
+│   └── transcendence.db # Database file (auto-generated)
+├── nginx/                # Nginx configuration
+│   ├── nginx.conf        # Nginx config
+│   └── ssl/              # SSL certificates (auto-generated)
+├── docs/                  # Documentation
+├── docker-compose.yml     # Docker orchestration
+├── Makefile              # Build and deployment commands
+└── .env                  # Environment variables (not in git)
 ```
 
 ## Development
@@ -97,6 +121,7 @@ cd frontend
 npm install
 npm run dev
 ```
+Frontend runs on `http://localhost:5173` with hot reload.
 
 ### Backend Development
 ```bash
@@ -104,6 +129,36 @@ cd backend
 npm install
 npm run dev
 ```
+Backend runs on `http://localhost:3000` with hot reload using `tsx watch`.
+
+### Database
+The SQLite database is automatically created on first backend startup. The schema is defined in `database/schema.sql` and includes:
+- `users` - User accounts and profiles
+- `games` - Game matches and results
+- `tournaments` - Tournament information
+- `tournament_participants` - Tournament player registration
+- `tournament_matches` - Tournament match scheduling
+
+## API Endpoints
+
+### Users
+- `GET /api/users` - Get all users
+- `GET /api/users/:id` - Get user by ID
+
+### Games
+- `GET /api/games` - Get all games
+- `GET /api/games/:id` - Get game by ID
+- `POST /api/games` - Create a new game
+
+### Tournaments
+- `GET /api/tournaments` - Get all tournaments
+- `GET /api/tournaments/:id` - Get tournament with participants and matches
+- `POST /api/tournaments` - Create a new tournament
+- `POST /api/tournaments/:id/participants` - Add participant to tournament
+- `GET /api/tournaments/:id/matches` - Get tournament matches
+
+### Health Check
+- `GET /health` - Server health status
 
 ## Game Controls
 
@@ -120,12 +175,14 @@ npm run dev
 
 ## Security
 
-- All passwords are hashed using strong algorithms
-- Protection against SQL injection and XSS attacks
-- HTTPS/WSS for all connections
-- Input validation on both client and server
-- JWT tokens for authentication
-- 2FA support
+- ✅ HTTPS/WSS for all connections (self-signed certificates for development)
+- ✅ CORS configured for frontend-backend communication
+- ✅ SQL injection protection (prepared statements with better-sqlite3)
+- ✅ Input validation on both client and server
+- ✅ Error handling middleware
+- 🔄 JWT tokens for authentication (planned)
+- 🔄 2FA support (planned)
+- 🔄 Password hashing with bcrypt/argon2 (planned)
 
 ## Technologies
 
@@ -145,3 +202,4 @@ npm run dev
 ## License
 
 42 School Project
+
