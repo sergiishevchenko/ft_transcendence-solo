@@ -174,4 +174,3 @@ export function TournamentPage(): HTMLElement {
   render()
   return div
 }
-

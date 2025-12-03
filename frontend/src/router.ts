@@ -34,4 +34,3 @@ export class Router {
     this.handleRoute()
   }
 }
-

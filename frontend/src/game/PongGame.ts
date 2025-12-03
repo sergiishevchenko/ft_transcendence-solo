@@ -137,4 +137,3 @@ export function PongGame(): HTMLElement {
 
   return container
 }
-

@@ -16,4 +16,3 @@ export function GamePage(): HTMLElement {
 
   return div
 }
-

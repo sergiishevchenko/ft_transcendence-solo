@@ -27,4 +27,3 @@ router.setNotFound(() => {
 })
 
 router.init()
-
