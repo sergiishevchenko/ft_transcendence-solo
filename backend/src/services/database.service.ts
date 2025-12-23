@@ -100,6 +100,10 @@ function initializeDatabase() {
     `
     db.exec(schema)
   }
+  
+  import('./friends.service').then(({ FriendsService }) => {
+    FriendsService.initialize()
+  })
 }
 
 export function closeDatabase() {
