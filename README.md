@@ -14,6 +14,9 @@ This project is a comprehensive web application that allows users to play Pong g
 - ✅ Tournament system with matchmaking
 - ✅ Player registration with aliases
 - ✅ HTTPS/WSS security
+- ✅ User authentication and registration
+- ✅ Password hashing (bcrypt)
+- ✅ SQL injection protection (prepared statements)
 
 ### Modules
 
@@ -24,8 +27,8 @@ This project is a comprehensive web application that allows users to play Pong g
 - ✅ API Integration - Frontend-Backend communication
 
 **User Management:**
-- 🔄 Standard User Management (registration, login, profiles)
-- 🔄 Remote Authentication (OAuth 2.0)
+- ✅ Standard User Management (registration, login, profiles, friends, stats)
+- ✅ Remote Authentication (OAuth 2.0 - Google & GitHub)
 
 **Gameplay:**
 - 🔄 Remote Players (WebSocket multiplayer)
@@ -147,18 +150,33 @@ npm run dev
 Backend runs on `http://localhost:3000` with hot reload using `tsx watch`.
 
 ### Database
-The SQLite database is automatically created on first backend startup. The schema is defined in `database/schema.sql` and includes:
-- `users` - User accounts and profiles
-- `games` - Game matches and results
+The SQLite database is automatically created on first backend startup. The schema includes:
+- `users` - User accounts and profiles (username, email, password_hash, display_name, avatar_url)
+- `games` - Game matches and results (player1_id, player2_id, scores, winner_id)
 - `tournaments` - Tournament information
 - `tournament_participants` - Tournament player registration
 - `tournament_matches` - Tournament match scheduling
+- `friendships` - Friend relationships between users
 
 ## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get current user (requires auth)
+- `GET /api/auth/oauth/:provider/authorize` - OAuth authorization (Google/GitHub)
+- `GET /api/auth/oauth/:provider/callback` - OAuth callback
 
 ### Users
 - `GET /api/users` - Get all users
 - `GET /api/users/:id` - Get user by ID
+- `GET /api/users/:id/stats` - Get user statistics
+- `PUT /api/users/profile` - Update user profile (requires auth)
+- `POST /api/users/profile/avatar` - Upload avatar (requires auth)
+- `GET /api/users/search?q=query` - Search users
+- `POST /api/users/friends/request` - Send friend request (requires auth)
+- `POST /api/users/friends/accept/:id` - Accept friend request (requires auth)
+- `GET /api/users/friends/list` - Get friends list (requires auth)
 
 ### Games
 - `GET /api/games` - Get all games
@@ -175,18 +193,30 @@ The SQLite database is automatically created on first backend startup. The schem
 ### Health Check
 - `GET /health` - Server health status
 
-## Game Controls
+## Features
 
-### Local Game (2 players on same keyboard)
+### User Management
+- User registration with email validation
+- Secure login with JWT tokens
+- User profiles with customizable display names
+- Avatar upload with default fallback
+- Friend system (send requests, accept, view friends)
+- User statistics (wins, losses, win rate, match history)
+- OAuth 2.0 authentication (Google & GitHub)
+
+### Game Controls
+
+#### Local Game (2 players on same keyboard)
 - **Player 1**: W (up) / S (down)
 - **Player 2**: ↑ (up) / ↓ (down)
 
-## Tournament System
+### Tournament System
 
-1. Register players by entering aliases
+1. Register players by entering aliases (or use registered accounts)
 2. Start tournament (minimum 2 players)
-3. Matches are organized automatically
+3. Matches are organized automatically (round-robin)
 4. Complete matches to progress through the tournament
+5. View tournament history and statistics
 
 ## Security
 
@@ -195,18 +225,21 @@ The SQLite database is automatically created on first backend startup. The schem
 - ✅ SQL injection protection (prepared statements with better-sqlite3)
 - ✅ Input validation on both client and server
 - ✅ Error handling middleware
-- 🔄 JWT tokens for authentication (planned)
+- ✅ JWT tokens for authentication (access + refresh tokens)
+- ✅ Password hashing with bcrypt (10 rounds)
+- ✅ OAuth 2.0 secure authentication
 - 🔄 2FA support (planned)
-- 🔄 Password hashing with bcrypt/argon2 (planned)
+- 🔄 XSS protection (Content Security Policy - planned)
 
 ## Technologies
 
 - **Frontend**: TypeScript, Tailwind CSS, Vite
 - **Backend**: Fastify, Node.js, TypeScript
-- **Database**: SQLite
+- **Database**: SQLite (better-sqlite3)
+- **Authentication**: JWT, bcrypt, OAuth 2.0 (Google, GitHub)
 - **Containerization**: Docker, Docker Compose
 - **Web Server**: Nginx
-- **Security**: JWT, 2FA, WAF/ModSecurity, HashiCorp Vault
+- **Security**: JWT, bcrypt, OAuth 2.0, Prepared Statements
 
 ## Browser Compatibility
 
