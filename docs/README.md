@@ -4,6 +4,8 @@ Documentation for implemented features in the ft_transcendence project.
 
 ## Contents
 
+### Project
+
 | Document | Description |
 |----------|-------------|
 | [Architecture](./architecture.md) | Docker, nginx, HTTPS, project layout |
@@ -15,6 +17,13 @@ Documentation for implemented features in the ft_transcendence project.
 | [Tournament](./tournament.md) | Client-side tournament flow |
 | [Database](./database.md) | SQLite schema and data access |
 | [SSL Certificates](./ssl-certificates.md) | HTTPS certificate setup |
+
+### Theory
+
+| Document | Description |
+|----------|-------------|
+| [Theory index](./theory/README.md) | Conceptual docs on underlying technologies |
+| [Nginx](./theory/nginx.md) | How nginx works and how it is configured in this project |
 
 ## Quick Start
 

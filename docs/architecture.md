@@ -88,7 +88,7 @@ Nginx adds on every HTTPS response:
 - `X-Content-Type-Options: nosniff`
 - `X-XSS-Protection: 1; mode=block`
 
-See [SSL Certificates](./ssl-certificates.md) for certificate details.
+See [Nginx](./theory/nginx.md) for a detailed explanation of the reverse proxy setup, and [SSL Certificates](./ssl-certificates.md) for certificate details.
 
 ## Local Development (without Docker)
 
