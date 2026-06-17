@@ -171,7 +171,7 @@ volumes:
   - ./nginx/ssl:/etc/nginx/ssl:ro
 ```
 
-See [SSL/TLS Certificates](../ssl-certificates.md) for certificate generation.
+See [SSL/TLS Certificates](../project/ssl-certificates.md) for certificate generation.
 
 ### HTTP → HTTPS redirect
 
@@ -488,8 +488,8 @@ Nginx is a common choice for 42 projects: simple config, low resource usage, wel
 | `nginx/ssl/key.pem` | TLS private key |
 | `docker-compose.yml` | nginx service definition |
 | `Makefile` | `make ssl` generates certificates |
-| `docs/ssl-certificates.md` | Certificate details |
-| `docs/architecture.md` | Overall system architecture |
+| `docs/project/ssl-certificates.md` | Certificate details |
+| `docs/project/architecture.md` | Overall system architecture |
 
 ## Further Reading
 

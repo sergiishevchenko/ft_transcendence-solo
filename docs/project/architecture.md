@@ -74,7 +74,9 @@ ft_transcendence-solo/
 ├── backend/           API server (Fastify + TypeScript)
 ├── database/          schema.sql + transcendence.db
 ├── nginx/             nginx.conf + ssl/
-├── docs/              Documentation
+├── docs/
+│   ├── project/       Feature and setup documentation
+│   └── theory/        Technology concepts
 ├── docker-compose.yml
 ├── Makefile
 └── .env               Local secrets (not in git)
@@ -88,7 +90,7 @@ Nginx adds on every HTTPS response:
 - `X-Content-Type-Options: nosniff`
 - `X-XSS-Protection: 1; mode=block`
 
-See [Nginx](./theory/nginx.md) for a detailed explanation of the reverse proxy setup, and [SSL Certificates](./ssl-certificates.md) for certificate details.
+See [Nginx](../theory/nginx.md) for a detailed explanation of the reverse proxy setup, and [SSL Certificates](./ssl-certificates.md) for certificate details.
 
 ## Local Development (without Docker)
 

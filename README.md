@@ -126,6 +126,8 @@ ft_transcendence-solo/
 │   ├── nginx.conf        # Nginx config
 │   └── ssl/              # SSL certificates (auto-generated)
 ├── docs/                  # Documentation
+│   ├── project/           # Features and setup
+│   └── theory/            # Technology concepts
 ├── docker-compose.yml     # Docker orchestration
 ├── Makefile              # Build and deployment commands
 └── .env                  # Environment variables (not in git)
