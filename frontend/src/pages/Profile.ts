@@ -130,6 +130,20 @@ export function ProfilePage(): HTMLElement {
         }
       </div>
 
+      <div class="bg-gray-800 rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">Security & Privacy</h2>
+        <div class="space-y-3">
+          <a href="/2fa" class="block w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded transition text-left">
+            <span class="font-bold">Two-Factor Authentication</span>
+            <span class="text-gray-400 text-sm block">Add extra security to your account</span>
+          </a>
+          <a href="/privacy" class="block w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded transition text-left">
+            <span class="font-bold">Privacy & Data</span>
+            <span class="text-gray-400 text-sm block">Manage your data, export, or delete account</span>
+          </a>
+        </div>
+      </div>
+
       <div class="mt-6 text-center">
         <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded">
           Logout
@@ -182,10 +196,21 @@ export function ProfilePage(): HTMLElement {
     })
 
     const logoutBtn = div.querySelector('#logout-btn')
-    logoutBtn?.addEventListener('click', () => {
-      AuthService.clearTokens()
+    logoutBtn?.addEventListener('click', async () => {
+      await AuthService.logout()
       window.history.pushState({}, '', '/')
       window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    div.querySelectorAll('a[href^="/"]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault()
+        const href = (link as HTMLAnchorElement).getAttribute('href')
+        if (href) {
+          window.history.pushState({}, '', href)
+          window.dispatchEvent(new PopStateEvent('popstate'))
+        }
+      })
     })
   }
 
