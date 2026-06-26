@@ -95,6 +95,36 @@ Created at runtime by `FriendsService.initialize()` (not in `schema.sql`):
 
 Unique constraint: `(user1_id, user2_id)`.
 
+### chat_messages
+
+Created at runtime by `ChatService.initialize()`:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| sender_id | INTEGER FK → users | Required |
+| receiver_id | INTEGER FK → users | Required |
+| content | TEXT | Required |
+| type | TEXT | `text`, `game_invite`, `tournament_notification` |
+| game_room_id | TEXT | Room ID for game invites |
+| read | INTEGER | 0 = unread, 1 = read |
+| created_at | DATETIME | |
+
+Indexed on `sender_id`, `receiver_id`.
+
+### blocked_users
+
+Created at runtime by `ChatService.initialize()`:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| blocker_id | INTEGER FK → users | Required |
+| blocked_id | INTEGER FK → users | Required |
+| created_at | DATETIME | |
+
+Unique constraint: `(blocker_id, blocked_id)`.
+
 ## Data Access Pattern
 
 Models in `backend/src/models/` wrap prepared statements:
@@ -104,7 +134,7 @@ const stmt = db.prepare('SELECT * FROM users WHERE id = ?')
 const user = stmt.get(id)
 ```
 
-No ORM. Services (`auth`, `friends`, `stats`) contain business logic on top of models and raw queries.
+No ORM. Services (`auth`, `friends`, `stats`, `chat`, `game`, `ai`) contain business logic on top of models and raw queries.
 
 ## Docker Volume
 

@@ -6,12 +6,12 @@ Documentation for implemented features and project setup.
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](./architecture.md) | Docker, nginx, HTTPS, project layout |
-| [Frontend](./frontend.md) | SPA routing, pages, UI toolkit |
-| [Backend API](./backend-api.md) | Fastify server, routes, middleware |
+| [Architecture](./architecture.md) | Docker, nginx, HTTPS, WebSocket, project layout |
+| [Frontend](./frontend.md) | SPA routing, pages, game modes, WebSocket client |
+| [Backend API](./backend-api.md) | Fastify server, REST routes, WebSocket endpoints, services |
 | [Authentication](./authentication.md) | Registration, login, JWT, OAuth |
 | [User Management](./user-management.md) | Profiles, friends, statistics |
-| [Pong Game](./pong-game.md) | Local 2-player game mechanics |
+| [Pong Game](./pong-game.md) | Local, online, 4-player, and AI game modes |
 | [Tournament](./tournament.md) | Client-side tournament flow |
 | [Database](./database.md) | SQLite schema and data access |
 | [SSL Certificates](./ssl-certificates.md) | HTTPS certificate setup |
@@ -40,12 +40,28 @@ make
 - Local Pong game (2 players, one keyboard)
 - Client-side tournament (round-robin matchmaking)
 - Password hashing (bcrypt), prepared SQL statements
+- Remote multiplayer via WebSocket (1v1)
+- 4-player multiplayer mode (square field)
+- AI opponent (easy/medium/hard with ball prediction)
+- Live chat (DMs, blocking, game invites, online status)
+- Online/offline status tracking
 
 ### Not Yet Implemented
 
-- Remote multiplayer (WebSocket)
-- Live chat
-- AI opponent
 - XSS protection (CSP)
-- Online friend status
+- 2FA and enhanced JWT
+- WAF/ModSecurity + HashiCorp Vault
+- GDPR compliance
+- ELK Stack logging
+- Prometheus/Grafana monitoring
+- Microservices architecture
+- Stats dashboards with charts
+- Game customization options
+- Additional game + matchmaking
+- 3D graphics (Babylon.js)
+- Server-side Pong API
+- CLI for Pong
+- Blockchain integration
+- Accessibility modules
+- SSR integration
 - Frontend integration with tournament/game API persistence

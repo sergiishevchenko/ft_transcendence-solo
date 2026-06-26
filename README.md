@@ -31,12 +31,12 @@ This project is a comprehensive web application that allows users to play Pong g
 - ✅ Remote Authentication (OAuth 2.0 - Google & GitHub)
 
 **Gameplay:**
-- 🔄 Remote Players (WebSocket multiplayer)
-- 🔄 Multiplayer (more than 2 players)
-- 🔄 Live Chat
+- ✅ Remote Players (WebSocket multiplayer with reconnection)
+- ✅ Multiplayer (4-player mode on square field)
+- ✅ Live Chat (DMs, blocking, game invites, online status)
 
 **AI & Stats:**
-- 🔄 AI Opponent
+- ✅ AI Opponent (3 difficulty levels, ball trajectory prediction)
 - 🔄 User and Game Stats Dashboards
 
 **Security:**
@@ -105,25 +105,26 @@ This project is a comprehensive web application that allows users to play Pong g
 ft_transcendence-solo/
 ├── frontend/              # TypeScript + Tailwind CSS + Vite
 │   ├── src/
-│   │   ├── components/   # UI components
-│   │   ├── pages/        # Page components
-│   │   ├── services/     # API service
-│   │   ├── game/         # Game logic
+│   │   ├── components/   # UI components (Layout)
+│   │   ├── pages/        # Page components (Home, Game, Chat, etc.)
+│   │   ├── services/     # API, Auth, WebSocket services
+│   │   ├── game/         # Game logic (PongGame, RemotePongGame)
 │   │   └── router.ts     # SPA routing
 │   └── package.json
 ├── backend/              # Fastify + Node.js + TypeScript
 │   ├── src/
-│   │   ├── routes/       # API routes
+│   │   ├── routes/       # API routes (auth, users, games, chat)
 │   │   ├── models/       # Database models
-│   │   ├── services/     # Business logic
+│   │   ├── services/     # Business logic (auth, game, chat, AI)
+│   │   ├── websocket/    # WebSocket handlers (game, chat)
 │   │   ├── middleware/   # Request middleware
 │   │   └── index.ts      # Server entry point
 │   └── package.json
 ├── database/              # SQLite database files
 │   ├── schema.sql        # Database schema
-│   └── transcendence.db # Database file (auto-generated)
+│   └── transcendence.db  # Database file (auto-generated)
 ├── nginx/                # Nginx configuration
-│   ├── nginx.conf        # Nginx config
+│   ├── nginx.conf        # Nginx config (HTTPS + WebSocket proxy)
 │   └── ssl/              # SSL certificates (auto-generated)
 ├── docs/                  # Documentation
 │   ├── project/           # Features and setup
@@ -159,6 +160,8 @@ The SQLite database is automatically created on first backend startup. The schem
 - `tournament_participants` - Tournament player registration
 - `tournament_matches` - Tournament match scheduling
 - `friendships` - Friend relationships between users
+- `chat_messages` - Direct messages between users
+- `blocked_users` - User blocking relationships
 
 ## API Endpoints
 
@@ -192,33 +195,91 @@ The SQLite database is automatically created on first backend startup. The schem
 - `POST /api/tournaments/:id/participants` - Add participant to tournament
 - `GET /api/tournaments/:id/matches` - Get tournament matches
 
+### Chat
+- `GET /api/chat/conversations` - Get conversation list (requires auth)
+- `GET /api/chat/messages/:userId` - Get messages with a user (requires auth)
+- `POST /api/chat/block/:userId` - Block a user (requires auth)
+- `DELETE /api/chat/block/:userId` - Unblock a user (requires auth)
+- `GET /api/chat/blocked` - Get blocked user IDs (requires auth)
+- `GET /api/chat/unread` - Get unread message count (requires auth)
+
 ### Health Check
 - `GET /health` - Server health status
 
-## Features
+## WebSocket Endpoints
 
-### User Management
-- User registration with email validation
-- Secure login with JWT tokens
-- User profiles with customizable display names
-- Avatar upload with default fallback
-- Friend system (send requests, accept, view friends)
-- User statistics (wins, losses, win rate, match history)
-- OAuth 2.0 authentication (Google & GitHub)
+### Game WebSocket (`/ws/game`)
 
-### Game Controls
+Connect with optional `?token=JWT` for authenticated play. Messages:
 
-#### Local Game (2 players on same keyboard)
+| Client → Server | Description |
+|-----------------|-------------|
+| `quick_match` | Join matchmaking queue (1v1 or 4-player) |
+| `create_room` | Create a private game room |
+| `join_room` | Join an existing room by ID |
+| `play_ai` | Start a game against AI (easy/medium/hard) |
+| `input` | Send paddle input (`{ up, down }`) |
+| `leave_room` | Leave current game |
+| `get_rooms` | List available rooms |
+
+| Server → Client | Description |
+|-----------------|-------------|
+| `connected` | Connection confirmed with socket ID and game constants |
+| `room_joined` | Joined a room with initial state |
+| `player_joined` | Another player joined the room |
+| `countdown` | Countdown before game starts (3, 2, 1) |
+| `game_started` | Game has begun |
+| `game_state` | Real-time game state update (60fps) |
+| `player_disconnected` | A player disconnected (15s reconnect window) |
+| `player_left` | A player left the game |
+
+### Chat WebSocket (`/ws/chat`)
+
+Requires `?token=JWT` for authentication. Messages:
+
+| Client → Server | Description |
+|-----------------|-------------|
+| `send_message` | Send a direct message |
+| `get_conversations` | Get conversation list |
+| `get_messages` | Get message history with a user |
+| `mark_read` | Mark messages as read |
+| `block_user` | Block a user |
+| `unblock_user` | Unblock a user |
+| `game_invite` | Send a game invitation |
+| `get_online_users` | Get list of online user IDs |
+
+| Server → Client | Description |
+|-----------------|-------------|
+| `connected` | Connection confirmed with online users list |
+| `new_message` | New message received |
+| `user_online` | A user came online |
+| `user_offline` | A user went offline |
+| `tournament_notification` | Tournament match notification |
+
+## Game Modes
+
+### Local Game (2 players, same keyboard)
 - **Player 1**: W (up) / S (down)
 - **Player 2**: ↑ (up) / ↓ (down)
+- No server connection required
 
-### Tournament System
+### Online 1v1
+- Quick matchmaking via WebSocket
+- Server-side game loop at 60fps
+- 15-second reconnection window on disconnect
+- Game results saved to database
 
-1. Register players by entering aliases (or use registered accounts)
-2. Start tournament (minimum 2 players)
-3. Matches are organized automatically (round-robin)
-4. Complete matches to progress through the tournament
-5. View tournament history and statistics
+### 4-Player Battle
+- Square playing field (800×800)
+- Each player guards one wall (left, right, top, bottom)
+- Ball can exit through any unguarded wall
+- Points awarded to all other players when someone loses
+
+### vs AI
+- Three difficulty levels: Easy, Medium, Hard
+- AI updates its view once per second (spec requirement)
+- Ball trajectory prediction with bounce simulation
+- Configurable error margin per difficulty
 
 ## Security
 
@@ -230,6 +291,8 @@ The SQLite database is automatically created on first backend startup. The schem
 - ✅ JWT tokens for authentication (access + refresh tokens)
 - ✅ Password hashing with bcrypt (10 rounds)
 - ✅ OAuth 2.0 secure authentication
+- ✅ WebSocket authentication via JWT token
+- ✅ Chat message escaping (XSS prevention in chat)
 - 🔄 2FA support (planned)
 - 🔄 XSS protection (Content Security Policy - planned)
 
@@ -238,10 +301,10 @@ The SQLite database is automatically created on first backend startup. The schem
 - **Frontend**: TypeScript, Tailwind CSS, Vite
 - **Backend**: Fastify, Node.js, TypeScript
 - **Database**: SQLite (better-sqlite3)
+- **Real-time**: WebSocket (@fastify/websocket, ws)
 - **Authentication**: JWT, bcrypt, OAuth 2.0 (Google, GitHub)
 - **Containerization**: Docker, Docker Compose
-- **Web Server**: Nginx
-- **Security**: JWT, bcrypt, OAuth 2.0, Prepared Statements
+- **Web Server**: Nginx (reverse proxy, WebSocket proxy, TLS termination)
 
 ## Browser Compatibility
 
@@ -252,4 +315,3 @@ The SQLite database is automatically created on first backend startup. The schem
 ## License
 
 42 School Project
-
