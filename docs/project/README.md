@@ -35,6 +35,13 @@ Documentation for implemented features and project setup.
 | [AI Opponent](./ai-opponent.md) | AI algorithm, difficulty levels, ball prediction |
 | [Live Chat](./live-chat.md) | Direct messages, blocking, game invites, online status |
 
+### Stage 5: Security
+| Document | Description |
+|----------|-------------|
+| [2FA + JWT](./2fa-jwt.md) | TOTP authentication, refresh tokens, backup codes |
+| [WAF/ModSecurity + Vault](./waf-vault.md) | WAF rules, ModSecurity, HashiCorp Vault secrets |
+| [GDPR Compliance](./gdpr-compliance.md) | Data export, anonymization, account deletion, privacy |
+
 ### Setup & Security
 | Document | Description |
 |----------|-------------|
@@ -53,12 +60,12 @@ make
 
 ### Done
 
-- Docker infrastructure (frontend, backend, nginx)
+- Docker infrastructure (frontend, backend, nginx, vault)
 - HTTPS via self-signed certificates
 - TypeScript SPA with browser history support
 - Tailwind CSS UI
 - Fastify REST API with SQLite
-- User registration and login (JWT)
+- User registration and login (JWT with refresh rotation)
 - OAuth 2.0 (Google, GitHub)
 - User profiles, avatars, friends, stats
 - Local Pong game (2 players, one keyboard)
@@ -69,13 +76,16 @@ make
 - AI opponent (easy/medium/hard with ball prediction)
 - Live chat (DMs, blocking, game invites, online status)
 - Online/offline status tracking
+- Two-factor authentication (TOTP with backup codes)
+- JWT refresh token rotation and revocation
+- WAF/ModSecurity with OWASP CRS
+- HashiCorp Vault secret management
+- XSS protection (CSP + input sanitization)
+- GDPR compliance (data export, anonymization, deletion)
+- Privacy policy page
 
 ### Not Yet Implemented
 
-- XSS protection (CSP)
-- 2FA and enhanced JWT
-- WAF/ModSecurity + HashiCorp Vault
-- GDPR compliance
 - ELK Stack logging
 - Prometheus/Grafana monitoring
 - Microservices architecture

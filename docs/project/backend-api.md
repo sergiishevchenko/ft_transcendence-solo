@@ -8,6 +8,9 @@
 - **better-sqlite3** — synchronous SQLite driver with prepared statements
 - **bcrypt** — password hashing
 - **jsonwebtoken** — JWT access and refresh tokens
+- **otpauth** — TOTP generation and verification (2FA)
+- **qrcode** — QR code generation for authenticator setup
+- **node-vault** — HashiCorp Vault client for secret management
 - **@fastify/cors** — cross-origin requests
 - **@fastify/multipart** — avatar uploads (max 5 MB)
 - **@fastify/static** — serve files from `uploads/`
@@ -18,10 +21,10 @@
 
 1. Registers CORS (all origins, credentials enabled)
 2. Registers WebSocket, multipart, and static file plugins
-3. Sets global error handler
-4. Mounts route groups under `/api`
+3. Sets global error handler and XSS sanitization middleware
+4. Mounts route groups under `/api` (auth, users, chat, gdpr)
 5. Registers WebSocket handlers for game and chat
-6. Initializes SQLite and ChatService tables on startup
+6. Initializes SQLite, ChatService, TotpService tables, and Vault on startup
 7. Listens on `0.0.0.0:3000`
 
 ## REST Route Groups
@@ -31,8 +34,15 @@
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | `/register` | No | Create account |
-| POST | `/login` | No | Authenticate |
-| GET | `/me` | Yes | Current user |
+| POST | `/login` | No | Authenticate (returns tokens or 2FA prompt) |
+| POST | `/verify-2fa` | Temp | Verify TOTP code during login |
+| POST | `/refresh` | No | Refresh access token (rotate pair) |
+| POST | `/logout` | Yes | Revoke refresh token |
+| GET | `/me` | Yes | Current user (includes totpEnabled) |
+| POST | `/2fa/setup` | Yes | Generate TOTP secret + QR code |
+| POST | `/2fa/enable` | Yes | Verify code and enable 2FA |
+| POST | `/2fa/disable` | Yes | Disable 2FA (requires code) |
+| GET | `/2fa/status` | Yes | Check 2FA enabled status |
 | GET | `/oauth/:provider/authorize` | No | Redirect to OAuth provider |
 | GET | `/oauth/:provider/callback` | No | Handle OAuth callback |
 
@@ -77,11 +87,19 @@ Providers: `google`, `github`.
 | POST | `/tournaments/:id/participants` | Add participant |
 | GET | `/tournaments/:id/matches` | Tournament matches |
 
+### `/api/gdpr` — `gdpr.routes.ts`
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/export` | Yes | Download all personal data as JSON |
+| POST | `/anonymize` | Yes | Anonymize account (requires password) |
+| DELETE | `/account` | Yes | Delete account (password + "DELETE" confirmation) |
+
 ### Health
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | `{ status: "ok" }` |
+| GET | `/health` | `{ status: "ok", vault: boolean }` |
 
 ## WebSocket Endpoints
 
@@ -167,6 +185,10 @@ Used as `preHandler` on protected routes.
 
 Catches unhandled errors, logs them, returns JSON `{ error, message, statusCode }`. Hides internal details on 500 responses.
 
+### XSS Sanitizer (`sanitize.middleware.ts`)
+
+Global `preHandler` hook that checks request body and query parameters for XSS patterns (`<script>`, `javascript:`, `on*=` handlers, `<iframe>`, etc.). Sanitizes HTML entities in body content and rejects dangerous query strings with 400 status.
+
 ## Models
 
 Data access layer in `backend/src/models/`:
@@ -181,7 +203,10 @@ All queries use prepared statements via better-sqlite3.
 
 | Service | File | Responsibility |
 |---------|------|----------------|
-| AuthService | `auth.service.ts` | Hash/verify passwords, generate/verify JWT |
+| AuthService | `auth.service.ts` | Hash/verify passwords, JWT with rotation, 2FA login flow |
+| TotpService | `totp.service.ts` | TOTP generation, verification, backup codes, refresh tokens |
+| VaultService | `vault.service.ts` | HashiCorp Vault client, secret retrieval, env fallback |
+| GdprService | `gdpr.service.ts` | Data export, anonymization, cascade account deletion |
 | OAuthService | `oauth.service.ts` | Google/GitHub OAuth flow |
 | GameService | `game.service.ts` | Server-side game engine (rooms, physics, scoring) |
 | ChatService | `chat.service.ts` | Message persistence, blocking, conversation tracking |

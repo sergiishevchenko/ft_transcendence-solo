@@ -28,6 +28,8 @@ Routing is handled by a custom `Router` class (`frontend/src/router.ts`). It doe
 | `/register` | Register | Account creation form |
 | `/profile` | Profile | User profile, stats, friends (auth required) |
 | `/chat` | Chat | Direct messages, online users (auth required) |
+| `/2fa` | TwoFactorSetup | 2FA setup, enable/disable (auth required) |
+| `/privacy` | Privacy | Privacy policy, data export/delete (GDPR) |
 | `/auth/callback` | — | OAuth token handoff from backend redirect |
 
 Unknown paths redirect to `/`.
@@ -51,7 +53,9 @@ Query parameters on `/game`:
 ### AuthService (`services/auth.service.ts`)
 
 - Stores JWT access/refresh tokens and user object in `localStorage`
-- Methods: `register`, `login`, `getCurrentUser`, `getAuthHeaders`, `getOAuthUrl`
+- Methods: `register`, `login`, `verify2FA`, `refreshTokens`, `logout`, `getCurrentUser`, `getAuthHeaders`, `getOAuthUrl`
+- Automatic token refresh on 401 responses (with deduplication)
+- 2FA support: `login()` returns `{ requires2FA, tempToken }` when 2FA is enabled
 - Prefix for storage keys: `transcendence_`
 
 ### ApiService (`services/api.service.ts`)
@@ -108,9 +112,35 @@ Full chat interface with:
 - Block/unblock users
 - Tournament notifications as toast alerts
 
+### Login Page
+
+Two-step login flow:
+- Step 1: Username/email + password form with OAuth buttons
+- Step 2: If 2FA enabled, shows TOTP code input (6 digits or backup code)
+- Automatic redirect after successful authentication
+
+### 2FA Setup Page (`/2fa`)
+
+Full 2FA lifecycle management:
+- Status display (enabled/disabled)
+- QR code generation for authenticator app setup
+- Manual secret entry option
+- Code verification to enable 2FA
+- Backup codes display (one-time)
+- Disable 2FA with code confirmation
+
+### Privacy Page (`/privacy`)
+
+GDPR compliance tools:
+- Privacy policy text
+- Data export (JSON download)
+- Account anonymization (password confirmation)
+- Account deletion (password + "DELETE" text + confirm dialog)
+- Profile page links to this page via "Security & Privacy" section
+
 ## Entry Point
 
-`main.ts` imports CSS, creates the router, registers all routes (including `/chat`), and calls `router.init()`.
+`main.ts` imports CSS, creates the router, registers all routes (including `/chat`, `/2fa`, `/privacy`), and calls `router.init()`.
 
 ## Build and Dev
 

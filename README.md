@@ -40,9 +40,9 @@ This project is a comprehensive web application that allows users to play Pong g
 - 🔄 User and Game Stats Dashboards
 
 **Security:**
-- 🔄 2FA + JWT
-- 🔄 WAF/ModSecurity + HashiCorp Vault
-- 🔄 GDPR Compliance
+- ✅ 2FA + JWT (TOTP, refresh rotation, backup codes)
+- ✅ WAF/ModSecurity + HashiCorp Vault (OWASP CRS, secret management)
+- ✅ GDPR Compliance (data export, anonymization, account deletion)
 
 **DevOps:**
 - 🔄 ELK Stack Logging
@@ -113,23 +113,28 @@ ft_transcendence-solo/
 │   └── package.json
 ├── backend/              # Fastify + Node.js + TypeScript
 │   ├── src/
-│   │   ├── routes/       # API routes (auth, users, games, chat)
+│   │   ├── routes/       # API routes (auth, users, games, chat, gdpr)
 │   │   ├── models/       # Database models
-│   │   ├── services/     # Business logic (auth, game, chat, AI)
+│   │   ├── services/     # Business logic (auth, game, chat, AI, totp, vault, gdpr)
 │   │   ├── websocket/    # WebSocket handlers (game, chat)
-│   │   ├── middleware/   # Request middleware
+│   │   ├── middleware/   # Request middleware (auth, error, sanitize)
 │   │   └── index.ts      # Server entry point
 │   └── package.json
 ├── database/              # SQLite database files
 │   ├── schema.sql        # Database schema
 │   └── transcendence.db  # Database file (auto-generated)
-├── nginx/                # Nginx configuration
+├── nginx/                # Nginx configuration (fallback)
 │   ├── nginx.conf        # Nginx config (HTTPS + WebSocket proxy)
 │   └── ssl/              # SSL certificates (auto-generated)
+├── modsecurity/          # WAF configuration
+│   ├── nginx.conf        # Nginx with ModSecurity module
+│   └── modsecurity.conf  # WAF rules (XSS, SQLi, rate limiting)
+├── vault/                # HashiCorp Vault
+│   └── config/vault.hcl  # Vault server configuration
 ├── docs/                  # Documentation
 │   ├── project/           # Features and setup
 │   └── theory/            # Technology concepts
-├── docker-compose.yml     # Docker orchestration
+├── docker-compose.yml     # Docker orchestration (nginx+modsec, vault)
 ├── Makefile              # Build and deployment commands
 └── .env                  # Environment variables (not in git)
 ```
@@ -167,10 +172,22 @@ The SQLite database is automatically created on first backend startup. The schem
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
+- `POST /api/auth/login` - Login user (returns tokens or 2FA prompt)
+- `POST /api/auth/verify-2fa` - Verify 2FA code during login
+- `POST /api/auth/refresh` - Refresh access token
+- `POST /api/auth/logout` - Logout and revoke refresh token
 - `GET /api/auth/me` - Get current user (requires auth)
+- `POST /api/auth/2fa/setup` - Generate TOTP secret and QR code
+- `POST /api/auth/2fa/enable` - Enable 2FA after verification
+- `POST /api/auth/2fa/disable` - Disable 2FA
+- `GET /api/auth/2fa/status` - Check 2FA status
 - `GET /api/auth/oauth/:provider/authorize` - OAuth authorization (Google/GitHub)
 - `GET /api/auth/oauth/:provider/callback` - OAuth callback
+
+### GDPR
+- `GET /api/gdpr/export` - Download personal data (requires auth)
+- `POST /api/gdpr/anonymize` - Anonymize account (requires auth + password)
+- `DELETE /api/gdpr/account` - Delete account (requires auth + password + "DELETE")
 
 ### Users
 - `GET /api/users` - Get all users
@@ -288,13 +305,17 @@ Requires `?token=JWT` for authentication. Messages:
 - ✅ SQL injection protection (prepared statements with better-sqlite3)
 - ✅ Input validation on both client and server
 - ✅ Error handling middleware
-- ✅ JWT tokens for authentication (access + refresh tokens)
+- ✅ JWT tokens with refresh token rotation and revocation
+- ✅ Two-Factor Authentication (TOTP with backup codes)
 - ✅ Password hashing with bcrypt (10 rounds)
 - ✅ OAuth 2.0 secure authentication
 - ✅ WebSocket authentication via JWT token
-- ✅ Chat message escaping (XSS prevention in chat)
-- 🔄 2FA support (planned)
-- 🔄 XSS protection (Content Security Policy - planned)
+- ✅ XSS protection (Content Security Policy + input sanitization)
+- ✅ WAF/ModSecurity with OWASP CRS (XSS, SQLi, path traversal detection)
+- ✅ Rate limiting (API: 30r/s, auth: 5r/s)
+- ✅ HashiCorp Vault for secret management
+- ✅ Security headers (HSTS, X-Frame-Options, Permissions-Policy)
+- ✅ GDPR compliance (data export, anonymization, account deletion)
 
 ## Technologies
 
@@ -302,9 +323,10 @@ Requires `?token=JWT` for authentication. Messages:
 - **Backend**: Fastify, Node.js, TypeScript
 - **Database**: SQLite (better-sqlite3)
 - **Real-time**: WebSocket (@fastify/websocket, ws)
-- **Authentication**: JWT, bcrypt, OAuth 2.0 (Google, GitHub)
+- **Authentication**: JWT, bcrypt, OAuth 2.0 (Google, GitHub), TOTP (otpauth)
+- **Security**: ModSecurity (OWASP CRS), HashiCorp Vault, CSP
 - **Containerization**: Docker, Docker Compose
-- **Web Server**: Nginx (reverse proxy, WebSocket proxy, TLS termination)
+- **Web Server**: Nginx + ModSecurity (WAF, reverse proxy, TLS termination)
 
 ## Browser Compatibility
 

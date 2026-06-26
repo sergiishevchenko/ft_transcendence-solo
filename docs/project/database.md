@@ -125,6 +125,35 @@ Created at runtime by `ChatService.initialize()`:
 
 Unique constraint: `(blocker_id, blocked_id)`.
 
+### user_totp
+
+Created at runtime by `TotpService.initialize()`:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| user_id | INTEGER PK FK → users | One row per user |
+| secret | TEXT | Base32-encoded TOTP secret |
+| enabled | INTEGER | 0 = setup pending, 1 = active |
+| backup_codes | TEXT | JSON array of SHA-256 hashed codes |
+| created_at | DATETIME | |
+
+Cascade delete on user removal.
+
+### refresh_tokens
+
+Created at runtime by `TotpService.initialize()`:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| user_id | INTEGER FK → users | |
+| token_hash | TEXT | SHA-256 hash of refresh token |
+| expires_at | DATETIME | 7 days from creation |
+| revoked | INTEGER | 0 = active, 1 = revoked |
+| created_at | DATETIME | |
+
+Indexed on `user_id` and `token_hash`. Cascade delete on user removal.
+
 ## Data Access Pattern
 
 Models in `backend/src/models/` wrap prepared statements:
@@ -134,7 +163,7 @@ const stmt = db.prepare('SELECT * FROM users WHERE id = ?')
 const user = stmt.get(id)
 ```
 
-No ORM. Services (`auth`, `friends`, `stats`, `chat`, `game`, `ai`) contain business logic on top of models and raw queries.
+No ORM. Services (`auth`, `friends`, `stats`, `chat`, `game`, `ai`, `totp`, `vault`, `gdpr`) contain business logic on top of models and raw queries.
 
 ## Docker Volume
 

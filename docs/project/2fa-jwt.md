@@ -2,26 +2,23 @@
 
 ## Overview
 
-Two-Factor Authentication adds a second verification step after password login. Combined with enhanced JWT token management including proper refresh token rotation and token revocation.
+Two-Factor Authentication adds a second verification step after password login using TOTP (Time-based One-Time Password). Combined with JWT refresh token rotation and token revocation for enhanced security.
 
 **Stage**: 5 (Security)
 **Module type**: Major (Cybersecurity)
-**Status**: Not yet implemented
+**Status**: Implemented
 
-## Current State
+## JWT Token Management
 
-The project already uses JWT for authentication (`backend/src/services/auth.service.ts`):
-- Access token: 15-minute expiry
-- Refresh token: 7-day expiry
-- Both signed with `JWT_SECRET` from environment
-- No refresh endpoint — tokens are issued at login only
-- No token revocation — tokens valid until expiry
+### Token Types
 
-## Planned Implementation
+| Token | Lifetime | Purpose |
+|-------|----------|---------|
+| Access Token | 15 minutes | API authentication |
+| Refresh Token | 7 days | Obtain new access/refresh pair |
+| Temp Token | 5 minutes | 2FA verification during login |
 
-### Enhanced JWT
-
-#### Token Rotation
+### Token Rotation
 
 ```
 Login → access_token (15min) + refresh_token (7d)
@@ -31,155 +28,159 @@ Login → access_token (15min) + refresh_token (7d)
     POST /api/auth/refresh { refreshToken }
                     │
               new access_token + new refresh_token
-              (old refresh_token invalidated)
+              (old refresh_token revoked)
 ```
 
-#### Token Blacklist
+Each refresh token is stored hashed (SHA-256) in the `refresh_tokens` table. When used, the old token is revoked and a new pair is issued. This prevents token reuse attacks.
 
-Store revoked tokens in a database table:
+### Refresh Token Storage
 
 ```sql
-CREATE TABLE IF NOT EXISTS revoked_tokens (
+CREATE TABLE IF NOT EXISTS refresh_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    token_jti TEXT UNIQUE NOT NULL,
     user_id INTEGER NOT NULL,
+    token_hash TEXT NOT NULL,
     expires_at DATETIME NOT NULL,
-    revoked_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    revoked INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 ```
 
-Each JWT includes a `jti` (JWT ID) claim. On logout or token rotation, the old token's `jti` is added to the blacklist. Auth middleware checks blacklist before accepting a token.
+### Frontend Auto-Refresh
 
-#### Endpoints
+The `AuthService` on the frontend automatically attempts token refresh when a 401 response is received:
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/auth/refresh` | Exchange refresh token for new token pair |
-| POST | `/api/auth/logout` | Revoke current tokens |
-| POST | `/api/auth/logout-all` | Revoke all user tokens |
+1. API call returns 401
+2. `refreshTokens()` sends refresh token to backend
+3. New tokens stored in `localStorage`
+4. Original request retried with new access token
+5. If refresh fails, user is logged out
 
-### Two-Factor Authentication
+A deduplication mechanism (`refreshPromise`) prevents multiple concurrent refresh requests.
 
-#### Method: TOTP (Time-based One-Time Password)
+### Endpoints
 
-Compatible with Google Authenticator, Authy, and similar apps.
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/refresh` | No | Exchange refresh token for new token pair |
+| POST | `/api/auth/logout` | Yes | Revoke refresh token, clear session |
 
-#### Setup Flow
+## Two-Factor Authentication (TOTP)
+
+### Method
+
+TOTP — compatible with Google Authenticator, Authy, Microsoft Authenticator, and similar apps.
+
+Library: `otpauth` (TypeScript-native TOTP implementation)
+
+### Setup Flow
 
 ```
 1. User navigates to Profile → Security → Enable 2FA
-2. Backend generates TOTP secret (base32)
-3. Backend returns secret as QR code (otpauth:// URI)
+2. POST /api/auth/2fa/setup → generates TOTP secret
+3. Backend returns QR code (data URL) + secret (base32)
 4. User scans QR with authenticator app
-5. User enters 6-digit code to verify setup
-6. Backend saves secret and generates backup codes
-7. User shown backup codes (one-time display)
+5. User enters 6-digit code from app
+6. POST /api/auth/2fa/enable { code }
+7. Backend verifies code, enables 2FA
+8. Backend returns 8 backup codes (one-time display)
 ```
 
-#### Login Flow with 2FA
+### Login Flow with 2FA
 
 ```
-1. POST /api/auth/login { username, password }
-2. If 2FA enabled → response: { requires2FA: true, tempToken }
-3. POST /api/auth/verify-2fa { tempToken, code }
-4. Server verifies TOTP code
-5. If valid → return full access_token + refresh_token
-6. If invalid → 401
+1. POST /api/auth/login { usernameOrEmail, password }
+2. Password verified ✓
+3. 2FA enabled? → response: { requires2FA: true, tempToken }
+4. Frontend shows 2FA input form
+5. POST /api/auth/verify-2fa { tempToken, code }
+6. Server verifies TOTP code (window: ±1 period)
+7. Valid → return access_token + refresh_token
+8. Invalid → 401 error
 ```
 
-The `tempToken` is a short-lived JWT (5 min) that only grants access to the 2FA verification endpoint.
+The `tempToken` is a JWT with `purpose: '2fa_verification'` and 5-minute expiry. It only grants access to the verify-2fa endpoint.
 
-#### Endpoints
+### API Endpoints
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | `/api/auth/2fa/setup` | Yes | Generate TOTP secret and QR code |
-| POST | `/api/auth/2fa/verify-setup` | Yes | Verify code and enable 2FA |
+| POST | `/api/auth/2fa/enable` | Yes | Verify code and enable 2FA, returns backup codes |
 | POST | `/api/auth/2fa/disable` | Yes | Disable 2FA (requires current code) |
+| GET | `/api/auth/2fa/status` | Yes | Check if 2FA is enabled |
 | POST | `/api/auth/verify-2fa` | Temp | Verify 2FA code during login |
-| POST | `/api/auth/2fa/backup-codes` | Yes | Regenerate backup codes |
 
-#### Database Changes
+### Database
 
 ```sql
-ALTER TABLE users ADD COLUMN totp_secret TEXT;
-ALTER TABLE users ADD COLUMN totp_enabled INTEGER DEFAULT 0;
-
-CREATE TABLE IF NOT EXISTS backup_codes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    code_hash TEXT NOT NULL,
-    used INTEGER DEFAULT 0,
+CREATE TABLE IF NOT EXISTS user_totp (
+    user_id INTEGER PRIMARY KEY,
+    secret TEXT NOT NULL,
+    enabled INTEGER DEFAULT 0,
+    backup_codes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 ```
 
-#### Backup Codes
+- `secret`: Base32-encoded TOTP secret
+- `enabled`: Whether 2FA is active (0/1)
+- `backup_codes`: JSON array of SHA-256 hashed backup codes
 
-- 10 single-use backup codes generated on 2FA setup
-- Each code is a random 8-character alphanumeric string
-- Stored hashed (bcrypt) in the database
-- Used codes marked as consumed
-- Can be regenerated (invalidates all previous codes)
+### Backup Codes
 
-### Dependencies
+- 8 single-use codes generated on 2FA enable
+- Each code is 8 hex characters (e.g., `A3F7B2C1`)
+- Stored hashed with SHA-256
+- Used codes removed from the array
+- Can be used instead of TOTP code during login
 
-```json
-{
-    "otplib": "^12.0.0",
-    "qrcode": "^1.5.0"
-}
-```
+### Frontend Pages
 
-- `otplib` — TOTP generation and verification
-- `qrcode` — QR code generation for authenticator setup
+**2FA Setup Page** (`/2fa`):
+- Shows current 2FA status (enabled/disabled)
+- Enable flow: QR code display → code verification → backup codes display
+- Disable flow: enter current TOTP code to confirm
+- Manual entry option (base32 secret for copy-paste)
 
-### Frontend UI
+**Login Page** (`/login`):
+- Standard username/password form
+- If 2FA required: switches to code input view
+- Supports both TOTP codes and backup codes
+- "Back to login" button to return to credentials form
 
-Profile page → Security section:
-
-```
-┌─────────────────────────────────┐
-│ Two-Factor Authentication       │
-│                                 │
-│ Status: ● Disabled              │
-│                                 │
-│ [Enable 2FA]                    │
-│                                 │
-│ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│                                 │
-│ Active Sessions                 │
-│ • Chrome on macOS  [Revoke]     │
-│ • Firefox on Linux [Revoke]     │
-│                                 │
-│ [Logout All Devices]            │
-└─────────────────────────────────┘
-```
-
-Login page with 2FA:
+### File Structure
 
 ```
-┌─────────────────────────────────┐
-│ Two-Factor Authentication       │
-│                                 │
-│ Enter the 6-digit code from     │
-│ your authenticator app:         │
-│                                 │
-│ ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐      │
-│ │ │ │ │ │ │ │ │ │ │ │ │        │
-│ └─┘ └─┘ └─┘ └─┘ └─┘ └─┘      │
-│                                 │
-│ [Verify]                        │
-│                                 │
-│ Use backup code instead         │
-└─────────────────────────────────┘
+backend/src/
+├── services/
+│   ├── totp.service.ts    ← TOTP generation, verification, backup codes, refresh tokens
+│   └── auth.service.ts    ← Updated: 2FA login flow, token rotation
+├── routes/
+│   └── auth.routes.ts     ← Updated: 2FA and refresh endpoints
+
+frontend/src/
+├── pages/
+│   ├── Login.ts           ← Updated: 2FA verification step
+│   └── TwoFactorSetup.ts  ← New: 2FA setup page
+├── services/
+│   └── auth.service.ts    ← Updated: verify2FA(), refreshTokens(), logout()
 ```
 
 ### Security Considerations
 
-- TOTP secrets encrypted at rest (or stored in Vault if available)
-- Backup codes hashed with bcrypt
-- Rate limiting on 2FA verification (max 5 attempts per temp token)
-- Temp tokens cannot access any endpoint except `/verify-2fa`
-- TOTP window: ±1 period (30 seconds) to account for clock drift
+- TOTP verification window: ±1 period (30 seconds) to account for clock drift
+- Temp tokens restricted to `2fa_verification` purpose
+- Refresh tokens hashed before storage (SHA-256)
+- Expired/revoked tokens cleaned up periodically
+- Backup codes are one-time use
+- `POST /api/auth/logout` revokes the associated refresh token
+
+### Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `otpauth` | latest | TOTP generation and verification |
+| `qrcode` | latest | QR code generation (data URL format) |
