@@ -4,20 +4,41 @@ Documentation for implemented features and project setup.
 
 ## Contents
 
+### Stage 1: Base
 | Document | Description |
 |----------|-------------|
-| [Architecture](./architecture.md) | Docker, nginx, HTTPS, WebSocket, project layout |
-| [Frontend](./frontend.md) | SPA routing, pages, game modes, WebSocket client |
-| [Backend API](./backend-api.md) | Fastify server, REST routes, WebSocket endpoints, services |
-| [Authentication](./authentication.md) | Registration, login, JWT, OAuth |
-| [User Management](./user-management.md) | Profiles, friends, statistics, online status |
+| [Docker Setup](./docker-setup.md) | Dockerfiles, docker-compose, Makefile, volumes |
+| [Architecture](./architecture.md) | System overview, nginx, service diagram |
+| [Frontend](./frontend.md) | SPA routing, pages, TypeScript structure |
 | [Pong Game](./pong-game.md) | Local, online, 4-player, and AI game modes |
+| [Tournament](./tournament.md) | Client-side tournament flow |
+
+### Stage 2: Backend & Database
+| Document | Description |
+|----------|-------------|
+| [Backend API](./backend-api.md) | Fastify server, REST routes, WebSocket endpoints |
+| [Database](./database.md) | SQLite schema, tables, data access |
+| [Tailwind CSS](./tailwind-css.md) | CSS framework setup, design system, UI components |
+| [Frontend-Backend Integration](./frontend-backend-integration.md) | API calls, WebSocket, auth flow, file uploads |
+
+### Stage 3: Users
+| Document | Description |
+|----------|-------------|
+| [Authentication](./authentication.md) | Registration, login, JWT, OAuth 2.0 |
+| [User Management](./user-management.md) | Profiles, friends, statistics, online status |
+| [Tournament Integration](./tournament-integration.md) | User-tournament binding, game linking, API |
+
+### Stage 4: Game Experience
+| Document | Description |
+|----------|-------------|
 | [Remote Multiplayer](./remote-multiplayer.md) | WebSocket game sync, rooms, disconnect handling |
 | [AI Opponent](./ai-opponent.md) | AI algorithm, difficulty levels, ball prediction |
 | [Live Chat](./live-chat.md) | Direct messages, blocking, game invites, online status |
-| [Tournament](./tournament.md) | Client-side tournament flow |
-| [Database](./database.md) | SQLite schema and data access |
-| [SSL Certificates](./ssl-certificates.md) | HTTPS certificate setup |
+
+### Setup & Security
+| Document | Description |
+|----------|-------------|
+| [SSL Certificates](./ssl-certificates.md) | HTTPS certificate generation and setup |
 
 ## Quick Start
 
