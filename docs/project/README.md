@@ -10,8 +10,11 @@ Documentation for implemented features and project setup.
 | [Frontend](./frontend.md) | SPA routing, pages, game modes, WebSocket client |
 | [Backend API](./backend-api.md) | Fastify server, REST routes, WebSocket endpoints, services |
 | [Authentication](./authentication.md) | Registration, login, JWT, OAuth |
-| [User Management](./user-management.md) | Profiles, friends, statistics |
+| [User Management](./user-management.md) | Profiles, friends, statistics, online status |
 | [Pong Game](./pong-game.md) | Local, online, 4-player, and AI game modes |
+| [Remote Multiplayer](./remote-multiplayer.md) | WebSocket game sync, rooms, disconnect handling |
+| [AI Opponent](./ai-opponent.md) | AI algorithm, difficulty levels, ball prediction |
+| [Live Chat](./live-chat.md) | Direct messages, blocking, game invites, online status |
 | [Tournament](./tournament.md) | Client-side tournament flow |
 | [Database](./database.md) | SQLite schema and data access |
 | [SSL Certificates](./ssl-certificates.md) | HTTPS certificate setup |
@@ -64,4 +67,3 @@ make
 - Blockchain integration
 - Accessibility modules
 - SSR integration
-- Frontend integration with tournament/game API persistence

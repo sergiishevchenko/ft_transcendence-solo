@@ -53,7 +53,7 @@ Friendships stored in `friendships` table (created at runtime by `FriendsService
 
 `GET /api/users/search?q=query` — case-insensitive search on username and display name, max 10 results.
 
-> Online status for friends is not implemented yet.
+Online status is tracked via the chat WebSocket connection — see [Live Chat](./live-chat.md).
 
 ## Statistics
 

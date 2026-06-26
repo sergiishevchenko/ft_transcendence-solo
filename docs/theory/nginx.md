@@ -24,7 +24,7 @@ In this project, nginx is the **single public entry point**. Users never talk to
 |---------|---------------------|
 | Multiple services (frontend + backend) on one domain | Routes by URL path (`/`, `/api`, `/ws`) |
 | HTTPS required by project spec | Terminates TLS in one place; inner services stay on plain HTTP |
-| WebSocket support (planned) | Proxies upgrade headers to backend |
+| WebSocket support | Proxies upgrade headers to backend for game and chat |
 | Security headers | Adds `X-Frame-Options`, `X-Content-Type-Options`, etc. on every response |
 | Single port for users | Browser sees `https://localhost`, not `:5173` or `:3000` |
 
@@ -308,7 +308,7 @@ location /ws {
 }
 ```
 
-Reserved for future real-time features (remote Pong, chat). Same proxy settings as `/api`. When WebSocket server is implemented on backend at `/ws`, this location will forward upgrade requests.
+Handles WebSocket connections for real-time game play (`/ws/game`) and live chat (`/ws/chat`). The `proxy_read_timeout 86400` keeps connections alive for 24 hours. See [WebSocket](./websocket.md) for protocol details.
 
 ## Docker Integration
 
@@ -453,7 +453,7 @@ Check `proxy_pass` trailing slash behavior. This project keeps `/api` prefix —
 
 ### WebSocket connection fails
 
-Verify upgrade headers in the relevant `location` block. For `/ws`, backend must implement WebSocket listener (not yet done).
+Verify upgrade headers in the relevant `location` block. Check that the backend is running and the `/ws/game` or `/ws/chat` WebSocket handlers are registered.
 
 ### Browser certificate warning
 

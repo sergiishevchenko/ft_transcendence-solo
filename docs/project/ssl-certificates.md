@@ -75,7 +75,7 @@ See [Nginx](../theory/nginx.md) for full proxy and TLS setup.
 
 - Project spec requires HTTPS/WSS for all connections
 - JWT and OAuth tokens must not travel over plain HTTP
-- Future WebSocket endpoint (`/ws`) needs WSS
+- WebSocket endpoints (`/ws/game`, `/ws/chat`) require WSS
 - Frontend `VITE_API_URL` points to `https://localhost/api`
 
 ## Troubleshooting
