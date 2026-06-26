@@ -6,6 +6,7 @@ import { TournamentPage } from './pages/Tournament'
 import { LoginPage } from './pages/Login'
 import { RegisterPage } from './pages/Register'
 import { ProfilePage } from './pages/Profile'
+import { ChatPage } from './pages/Chat'
 import { Layout } from './components/Layout'
 import { AuthService } from './services/auth.service'
 
@@ -41,11 +42,16 @@ router.addRoute('/profile', () => {
   Layout(content)
 })
 
+router.addRoute('/chat', () => {
+  const content = ChatPage()
+  Layout(content)
+})
+
 router.addRoute('/auth/callback', () => {
   const params = new URLSearchParams(window.location.search)
   const token = params.get('token')
   const refresh = params.get('refresh')
-  
+
   if (token && refresh) {
     AuthService.setTokens({ accessToken: token, refreshToken: refresh })
     AuthService.getCurrentUser().then(() => {

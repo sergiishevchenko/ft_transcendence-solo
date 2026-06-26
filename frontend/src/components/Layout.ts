@@ -8,6 +8,11 @@ export function Layout(content: HTMLElement) {
   const isAuthenticated = AuthService.isAuthenticated()
   const user = AuthService.getUser()
 
+  const navLink = (href: string, label: string) => {
+    const active = currentPath === href
+    return `<a href="${href}" class="px-3 py-2 rounded-md text-sm font-medium ${active ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}">${label}</a>`
+  }
+
   root.innerHTML = `
     <div class="min-h-screen bg-gray-900 text-white">
       <nav class="bg-gray-800 border-b border-gray-700">
@@ -17,12 +22,13 @@ export function Layout(content: HTMLElement) {
               <a href="/" class="text-xl font-bold text-blue-400">Transcendence</a>
             </div>
             <div class="flex items-center space-x-4">
-              <a href="/" class="px-3 py-2 rounded-md text-sm font-medium ${currentPath === '/' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}">Home</a>
-              <a href="/game" class="px-3 py-2 rounded-md text-sm font-medium ${currentPath === '/game' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}">Play</a>
-              <a href="/tournament" class="px-3 py-2 rounded-md text-sm font-medium ${currentPath === '/tournament' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}">Tournament</a>
-              ${isAuthenticated 
-                ? `<a href="/profile" class="px-3 py-2 rounded-md text-sm font-medium ${currentPath === '/profile' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}">${user?.display_name || user?.username || 'Profile'}</a>`
-                : `<a href="/login" class="px-3 py-2 rounded-md text-sm font-medium ${currentPath === '/login' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}">Login</a>`
+              ${navLink('/', 'Home')}
+              ${navLink('/game', 'Play')}
+              ${navLink('/tournament', 'Tournament')}
+              ${isAuthenticated ? navLink('/chat', 'Chat') : ''}
+              ${isAuthenticated
+                ? navLink('/profile', user?.display_name || user?.username || 'Profile')
+                : navLink('/login', 'Login')
               }
             </div>
           </div>
