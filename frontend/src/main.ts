@@ -7,6 +7,8 @@ import { LoginPage } from './pages/Login'
 import { RegisterPage } from './pages/Register'
 import { ProfilePage } from './pages/Profile'
 import { ChatPage } from './pages/Chat'
+import { TwoFactorSetupPage } from './pages/TwoFactorSetup'
+import { PrivacyPage } from './pages/Privacy'
 import { Layout } from './components/Layout'
 import { AuthService } from './services/auth.service'
 
@@ -44,6 +46,16 @@ router.addRoute('/profile', () => {
 
 router.addRoute('/chat', () => {
   const content = ChatPage()
+  Layout(content)
+})
+
+router.addRoute('/2fa', () => {
+  const content = TwoFactorSetupPage()
+  Layout(content)
+})
+
+router.addRoute('/privacy', () => {
+  const content = PrivacyPage()
   Layout(content)
 })
 

@@ -6,6 +6,7 @@ export interface User {
   email: string
   display_name?: string
   avatar_url?: string
+  totpEnabled?: boolean
 }
 
 export interface AuthTokens {
@@ -14,6 +15,8 @@ export interface AuthTokens {
 }
 
 export class AuthService {
+  private static refreshPromise: Promise<AuthTokens | null> | null = null
+
   private static getStorageKey(key: string): string {
     return `transcendence_${key}`
   }
@@ -50,6 +53,39 @@ export class AuthService {
     return !!this.getAccessToken()
   }
 
+  static async refreshTokens(): Promise<AuthTokens | null> {
+    if (this.refreshPromise) return this.refreshPromise
+
+    this.refreshPromise = (async () => {
+      const refreshToken = this.getRefreshToken()
+      if (!refreshToken) return null
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken })
+        })
+
+        if (!response.ok) {
+          this.clearTokens()
+          return null
+        }
+
+        const data = await response.json()
+        this.setTokens(data.tokens)
+        return data.tokens
+      } catch {
+        this.clearTokens()
+        return null
+      } finally {
+        this.refreshPromise = null
+      }
+    })()
+
+    return this.refreshPromise
+  }
+
   static async register(username: string, email: string, password: string, displayName?: string): Promise<{ user: User; tokens: AuthTokens }> {
     const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
@@ -68,7 +104,7 @@ export class AuthService {
     return data
   }
 
-  static async login(usernameOrEmail: string, password: string): Promise<{ user: User; tokens: AuthTokens }> {
+  static async login(usernameOrEmail: string, password: string): Promise<{ user?: User; tokens?: AuthTokens; requires2FA?: boolean; tempToken?: string }> {
     const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -81,9 +117,44 @@ export class AuthService {
     }
 
     const data = await response.json()
+
+    if (data.requires2FA) {
+      return { requires2FA: true, tempToken: data.tempToken }
+    }
+
     this.setTokens(data.tokens)
     this.setUser(data.user)
     return data
+  }
+
+  static async verify2FA(tempToken: string, code: string): Promise<{ user: User; tokens: AuthTokens }> {
+    const response = await fetch(`${API_URL}/api/auth/verify-2fa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tempToken, code })
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Invalid 2FA code')
+    }
+
+    const data = await response.json()
+    this.setTokens(data.tokens)
+    this.setUser(data.user)
+    return data
+  }
+
+  static async logout() {
+    const refreshToken = this.getRefreshToken()
+    try {
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ refreshToken })
+      })
+    } catch { /* best effort */ }
+    this.clearTokens()
   }
 
   static async getCurrentUser(): Promise<User | null> {
@@ -91,11 +162,18 @@ export class AuthService {
     if (!token) return null
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      let response = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
+
+      if (response.status === 401) {
+        const newTokens = await this.refreshTokens()
+        if (!newTokens) return null
+
+        response = await fetch(`${API_URL}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${newTokens.accessToken}` }
+        })
+      }
 
       if (!response.ok) {
         this.clearTokens()

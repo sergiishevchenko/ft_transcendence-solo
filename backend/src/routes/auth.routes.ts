@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { AuthService } from '../services/auth.service'
 import { UserModel } from '../models/user.model'
 import { OAuthService } from '../services/oauth.service'
+import { TotpService } from '../services/totp.service'
 import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware'
 
 export async function authRoutes(fastify: FastifyInstance) {
@@ -55,18 +56,79 @@ export async function authRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Missing credentials' })
       }
 
-      const { user, tokens } = await AuthService.login(
+      const result = await AuthService.login(
         body.usernameOrEmail,
         body.password
       )
 
-      const { password_hash, ...userWithoutPassword } = user
+      if (result.requires2FA) {
+        return reply.send({
+          requires2FA: true,
+          tempToken: result.tempToken
+        })
+      }
+
+      const { password_hash, ...userWithoutPassword } = result.user
       return reply.send({
         user: userWithoutPassword,
-        tokens
+        tokens: result.tokens
       })
     } catch (error: any) {
       return reply.status(401).send({ error: error.message })
+    }
+  })
+
+  fastify.post('/verify-2fa', async (request, reply) => {
+    try {
+      const body = request.body as { tempToken: string; code: string }
+
+      if (!body.tempToken || !body.code) {
+        return reply.status(400).send({ error: 'Missing token or code' })
+      }
+
+      const result = AuthService.verify2FA(body.tempToken, body.code)
+      if (!result) {
+        return reply.status(401).send({ error: 'Invalid 2FA code' })
+      }
+
+      const { password_hash, ...userWithoutPassword } = result.user
+      return reply.send({
+        user: userWithoutPassword,
+        tokens: result.tokens
+      })
+    } catch (error: any) {
+      return reply.status(401).send({ error: error.message })
+    }
+  })
+
+  fastify.post('/refresh', async (request, reply) => {
+    try {
+      const body = request.body as { refreshToken: string }
+
+      if (!body.refreshToken) {
+        return reply.status(400).send({ error: 'Missing refresh token' })
+      }
+
+      const tokens = AuthService.refreshAccessToken(body.refreshToken)
+      if (!tokens) {
+        return reply.status(401).send({ error: 'Invalid or expired refresh token' })
+      }
+
+      return reply.send({ tokens })
+    } catch (error: any) {
+      return reply.status(401).send({ error: error.message })
+    }
+  })
+
+  fastify.post('/logout', { preHandler: authenticate }, async (request: AuthenticatedRequest, reply) => {
+    try {
+      const body = request.body as { refreshToken?: string }
+      if (body.refreshToken) {
+        AuthService.revokeRefreshToken(body.refreshToken)
+      }
+      return reply.send({ message: 'Logged out' })
+    } catch (error: any) {
+      return reply.status(500).send({ error: error.message })
     }
   })
 
@@ -81,7 +143,76 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     const { password_hash, ...userWithoutPassword } = user
-    return reply.send({ user: userWithoutPassword })
+    const totpEnabled = TotpService.isTotpEnabled(user.id!)
+    return reply.send({ user: { ...userWithoutPassword, totpEnabled } })
+  })
+
+  fastify.post('/2fa/setup', { preHandler: authenticate }, async (request: AuthenticatedRequest, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' })
+      }
+
+      const { secret } = TotpService.setupTotp(request.user.id)
+      const user = UserModel.findById(request.user.id)
+      const qrCode = await TotpService.generateQRCode(user!.username, secret)
+
+      return reply.send({ secret, qrCode })
+    } catch (error: any) {
+      return reply.status(500).send({ error: error.message })
+    }
+  })
+
+  fastify.post('/2fa/enable', { preHandler: authenticate }, async (request: AuthenticatedRequest, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' })
+      }
+
+      const body = request.body as { code: string }
+      if (!body.code) {
+        return reply.status(400).send({ error: 'Missing verification code' })
+      }
+
+      const result = TotpService.enableTotp(request.user.id, body.code)
+      if (!result) {
+        return reply.status(400).send({ error: 'Invalid verification code' })
+      }
+
+      return reply.send({ message: '2FA enabled', backupCodes: result.backupCodes })
+    } catch (error: any) {
+      return reply.status(500).send({ error: error.message })
+    }
+  })
+
+  fastify.post('/2fa/disable', { preHandler: authenticate }, async (request: AuthenticatedRequest, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ error: 'Unauthorized' })
+      }
+
+      const body = request.body as { code: string }
+      if (!body.code) {
+        return reply.status(400).send({ error: 'Missing verification code' })
+      }
+
+      if (!TotpService.verifyTotp(request.user.id, body.code)) {
+        return reply.status(400).send({ error: 'Invalid verification code' })
+      }
+
+      TotpService.disableTotp(request.user.id)
+      return reply.send({ message: '2FA disabled' })
+    } catch (error: any) {
+      return reply.status(500).send({ error: error.message })
+    }
+  })
+
+  fastify.get('/2fa/status', { preHandler: authenticate }, async (request: AuthenticatedRequest, reply) => {
+    if (!request.user) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+    const enabled = TotpService.isTotpEnabled(request.user.id)
+    return reply.send({ enabled })
   })
 
   fastify.get('/oauth/:provider/authorize', async (request, reply) => {
